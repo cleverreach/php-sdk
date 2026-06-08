@@ -1,6 +1,6 @@
 # CleverReach PHP SDK
 
-[![Packagist Version](https://img.shields.io/packagist/v/cleverreach/sdk-php.svg)](https://packagist.org/packages/cleverreach/php-sdk)
+[![Packagist Version](https://img.shields.io/packagist/v/cleverreach/php-sdk.svg)](https://packagist.org/packages/cleverreach/php-sdk)
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.2-purple)](https://www.php.net)
 [![License MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
