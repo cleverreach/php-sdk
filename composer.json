@@ -9,7 +9,7 @@
     "rest",
     "api"
   ],
-  "homepage": "https://github.com/cleverreach/cleverreachsdk-php",
+  "homepage": "https://github.com/cleverreach/php-sdk",
   "license": "MIT",
   "authors": [
     {
