@@ -18,8 +18,8 @@
     }
   ],
   "support": {
-    "issues": "https://github.com/cleverreach/cleverreachsdk-php/issues",
-    "source": "https://github.com/cleverreach/cleverreachsdk-php"
+    "issues": "https://github.com/cleverreach/php-sdk/issues",
+    "source": "https://github.com/cleverreach/php-sdk"
   },
   "require": {
     "php": "^8.2",
