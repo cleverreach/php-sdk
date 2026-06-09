@@ -1,7 +1,7 @@
 {
   "name": "cleverreach/php-sdk",
   "type": "library",
-  "description": "PHP SDK for the CleverReach REST API",
+  "description": "Official PHP SDK for the CleverReach REST API",
   "keywords": [
     "cleverreach",
     "newsletter",
