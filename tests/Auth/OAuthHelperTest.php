@@ -50,7 +50,7 @@ final class OAuthHelperTest extends TestCase
             'client_secret',
             'https://example.com/callback',
             $this->storage,
-            'https://rest.cleverreach.com/v3',
+            'https://rest.cleverreach.com/oauth',
             $this->httpClient,
             $this->requestFactory,
             $this->streamFactory

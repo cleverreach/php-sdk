@@ -84,6 +84,13 @@ final class ApiRequestor implements ApiRequestorInterface
         ?array $json,
         bool $isRetrying
     ): array {
+        if ($this->tokenProvider === null && $this->apiToken === '') {
+            throw new AuthenticationException(
+                'No authentication token provided. You must either pass a static API token in the constructor or use setTokenProvider().',
+                0
+            );
+        }
+
         try {
             $request = $this->createRequest($method, $uri, $query, $json, $isRetrying);
             $response = $this->httpClient->sendRequest($request);

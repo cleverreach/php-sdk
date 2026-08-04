@@ -27,16 +27,13 @@ final class OAuthHelper implements TokenProviderInterface
         private readonly string $clientSecret,
         private readonly string $redirectUri,
         ?TokenStorageInterface $storage = null,
-        string $baseUri = 'https://rest.cleverreach.com/v3',
+        string $authBaseUrl = 'https://rest.cleverreach.com/oauth',
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?StreamFactoryInterface $streamFactory = null
     ) {
         $this->storage = $storage ?? new MemoryTokenStorage();
-
-        $host = parse_url($baseUri, PHP_URL_HOST) ?? 'rest.cleverreach.com';
-        $scheme = parse_url($baseUri, PHP_URL_SCHEME) ?? 'https';
-        $this->authBaseUrl = $scheme.'://'.$host.'/oauth';
+        $this->authBaseUrl = rtrim($authBaseUrl, '/');
 
         $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
         $this->requestFactory = $requestFactory ?? Psr17FactoryDiscovery::findRequestFactory();
