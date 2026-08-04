@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace CleverReach\Tests\Service;
 
-use CleverReach\SDK\Model\ReceiverModel;
+use CleverReach\SDK\Exception\ResourceNotFoundException;
 use CleverReach\SDK\Http\ApiRequestorInterface;
+use CleverReach\SDK\Model\ReceiverModel;
 use CleverReach\SDK\Service\ReceiversService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -50,7 +51,6 @@ final class ReceiversServiceTest extends TestCase
         ;
 
         $receiver = $this->service->get('jane@example.com');
-
         self::assertSame('jane@example.com', $receiver->email);
     }
 
@@ -62,7 +62,7 @@ final class ReceiversServiceTest extends TestCase
             ->willReturn(['id' => self::RECEIVER_ID, 'email' => 'jane@example.com'])
         ;
 
-        $this->service->get(self::RECEIVER_ID, groupId: self::GROUP_ID);
+        $this->service->get(self::RECEIVER_ID, self::GROUP_ID);
     }
 
     public function testGetUnwrapsListResponseAndReturnsFirstElement(): void {
@@ -75,7 +75,18 @@ final class ReceiversServiceTest extends TestCase
         ;
 
         $receiver = $this->service->get(self::RECEIVER_ID);
-
         self::assertSame('first@example.com', $receiver->email);
+    }
+
+    public function testGetThrowsExceptionWhenListIsEmpty(): void {
+        $this->requestor
+            ->method('request')
+            ->willReturn([]) // API returns empty list
+        ;
+
+        $this->expectException(ResourceNotFoundException::class);
+        $this->expectExceptionMessage("Receiver '999' not found.");
+
+        $this->service->get(999);
     }
 }

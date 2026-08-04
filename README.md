@@ -14,6 +14,7 @@ Built on PSR-18 / PSR-17 interfaces
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [OAuth 2.0 Flow](#oauth-20-flow)
 - [Features](#features)
 - [Typed Service API](#typed-service-api)
   - [Groups](#groups)
@@ -85,7 +86,117 @@ foreach ($groups as $group) {
 
 That's it. The SDK handles authentication, JSON encoding/decoding, and error mapping automatically.
 
-> Get your API token in the CleverReach backend under **Account → Extras → REST API**.
+> Get your API Token via the "Test process now" button in the CleverReach backend under **My Account → Interfaces → REST API** OR use the built-in OAuth functions.
+
+---
+
+## OAuth 2.0 Flow
+
+If you are building an app for multiple CleverReach customers, you need to use OAuth 2.0 instead of a rigid, static API token. The SDK provides an `OAuthHelper` to manage the complete authorization flow including strict CSRF validation (state checking) and automatic token-refresh routines.
+
+### 1. Generating Login URL
+
+```php
+use CleverReach\SDK\Auth\OAuthHelper;
+
+session_start();
+
+$oauthHelper = new OAuthHelper('YOUR_CLIENT_ID', 'YOUR_CLIENT_SECRET', 'https://your-domain.com/callback');
+
+// Generate secure state against CSRF
+$state = bin2hex(random_bytes(16));
+$_SESSION['oauth_state'] = $state;
+
+$url = $oauthHelper->getAuthorizationUrl($state, ['receivers:read', 'groups:read']);
+
+header('Location: ' . $url);
+exit;
+```
+
+### 2. Handling the Callback
+
+When CleverReach redirects the user back to your `redirect_uri` (e.g., `callback`), exchange the `code` for fully managed tokens. The SDK saves them per default on disk (`FileTokenStorage`), but you can inject a custom `TokenStorageInterface` to use Redis or Eloquent.
+
+> **Pro Tip:** The SDK does NOT map tokens to users automatically (to remain agnostic). In a multi-user environment, implement the `TokenStorageInterface` to link the stored `Tokens` to the currently logged-in user in your database.
+
+```php
+use CleverReach\SDK\Auth\Exceptions\CleverReachAuthException;
+use CleverReach\SDK\Auth\OAuthHelper;
+
+session_start();
+
+// Make sure to construct the helper with exactly your credentials
+$oauthHelper = new OAuthHelper('YOUR_CLIENT_ID', 'YOUR_CLIENT_SECRET', 'https://your-domain.com/callback');
+
+try {
+    $expectedState = $_SESSION['oauth_state'] ?? '';
+    $receivedState = $_GET['state'] ?? '';
+    $code          = $_GET['code'] ?? '';
+
+    // Exchanges the code and validates the returned state against the session value
+    $tokens = $oauthHelper->exchangeCodeForToken($code, $receivedState, $expectedState);
+
+    echo "Login success! Tokens cached.";
+} catch (CleverReachAuthException $e) {
+    die("Authorization failed: " . $e->getMessage());
+}
+```
+
+### Custom Token Storage (Database/Redis)
+
+For multi-tenant applications, you should write your own storage adapter by implementing the `TokenStorageInterface`. This allows you to persistently store and retrieve the tokens based on your system's user ID.
+
+```php
+use CleverReach\SDK\Auth\Storage\TokenStorageInterface;
+use CleverReach\SDK\Auth\Tokens;
+
+class MyDatabaseTokenStorage implements TokenStorageInterface {
+    public function __construct(private int $userId) {}
+
+    public function get(): ?Tokens {
+        // SELECT * FROM oauth_tokens WHERE user_id = $this->userId
+        // if found, return Tokens::fromArray($dbData);
+        // else return null;
+    }
+
+    public function set(Tokens $tokens): void {
+        // UPDATE/INSERT INTO oauth_tokens WHERE user_id = $this->userId
+        // You can also access Scopes: $tokens->hasScope('receivers:read')
+    }
+
+    public function delete(): void {
+        // DELETE FROM oauth_tokens WHERE user_id = $this->userId
+    }
+}
+
+// Pass it to the Helper during setup
+$storage = new MyDatabaseTokenStorage($_SESSION['user_id']);
+$oauthHelper = new OAuthHelper('CLIENT_ID', 'SECRET', 'CALLBACK', $storage);
+```
+
+### 3. API Requests with OAuth
+
+Hook the `OAuthHelper` into your client. It acts as a `TokenProvider` and will autonomously fetch or refresh access tokens prior to any endpoint requests.
+
+```php
+use CleverReach\SDK\CleverReachClient;
+
+$client = new CleverReachClient(); // Leave token empty
+$client->setTokenProvider($oauthHelper);
+
+// SDK handles adding Bearer token.
+// If the token is expired, SDK will automatically refresh & retry the API call.
+$groups = $client->groups()->all();
+```
+
+### Revoking Tokens (Logout)
+
+If a user uninstalls your app or logs out, you should actively revoke the token to invalidate it on the CleverReach servers:
+
+```php
+// Deletes the token locally and on the server
+$oauthHelper->revokeToken($tokens->getAccessToken());
+```
 
 ---
 
