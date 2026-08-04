@@ -121,15 +121,19 @@ When CleverReach redirects the user back to your `redirect_uri` (e.g., `callback
 
 ```php
 use CleverReach\SDK\Auth\Exceptions\CleverReachAuthException;
+use CleverReach\SDK\Auth\OAuthHelper;
 
 session_start();
+
+// Make sure to construct the helper with exactly your credentials
+$oauthHelper = new OAuthHelper('YOUR_CLIENT_ID', 'YOUR_CLIENT_SECRET', 'https://your-domain.com/callback');
 
 try {
     $expectedState = $_SESSION['oauth_state'] ?? '';
     $receivedState = $_GET['state'] ?? '';
     $code          = $_GET['code'] ?? '';
 
-    // Exchanges the code & performs strict HMAC state validation
+    // Exchanges the code and validates the returned state against the session value
     $tokens = $oauthHelper->exchangeCodeForToken($code, $receivedState, $expectedState);
 
     echo "Login success! Tokens cached.";

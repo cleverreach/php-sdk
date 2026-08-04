@@ -215,7 +215,7 @@ final class ApiRequestorTest extends TestCase
         }
     }
 
-    public function testRequestThrowsCleverReachExceptionIfNoBodyAndApiTokenEmpty(): void {
+    public function testRequestDecodesResponseWhenApiTokenIsEmpty(): void {
         $this->requestFactory->method('createRequest')->willReturn($this->request);
         $this->request->method('withHeader')->willReturnSelf();
         $this->request->method('withBody')->willReturnSelf();
