@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK;
 
+use CleverReach\SDK\Auth\TokenProviderInterface;
 use CleverReach\SDK\Exception\AuthenticationException;
 use CleverReach\SDK\Exception\CleverReachException;
 use CleverReach\SDK\Exception\MissingDependencyException;
@@ -23,7 +24,13 @@ use Psr\Http\Message\StreamFactoryInterface;
  *
  * @example
  * ```php
+ * // Basic usage with a static API Token
  * $client = new CleverReachClient('YOUR_API_TOKEN');
+ *
+ * // Advanced usage with OAuth 2.0 flow
+ * $oauth = new CleverReach\SDK\Auth\OAuthHelper('CLIENT_ID', 'CLIENT_SECRET', 'https://your-domain.com/callback');
+ * $client = new CleverReachClient();
+ * $client->setTokenProvider($oauth);
  *
  * // Typed service API (recommended)
  * $groups = $client->groups()->all();
@@ -43,19 +50,27 @@ final class CleverReachClient
     private ?ReceiversService $receiversService = null;
 
     public function __construct(
-        private readonly string $apiToken,
+        string $apiToken = '',
         string $baseUri = 'https://rest.cleverreach.com/v3/',
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?StreamFactoryInterface $streamFactory = null
     ) {
         $this->requestor = new ApiRequestor(
-            apiToken: $this->apiToken,
-            baseUri: $baseUri,
-            httpClient: $httpClient,
-            requestFactory: $requestFactory,
-            streamFactory: $streamFactory
+            $apiToken,
+            $baseUri,
+            $httpClient,
+            $requestFactory,
+            $streamFactory
         );
+    }
+
+    /**
+     * Sets a custom TokenProvider (e.g., an OAuthHelper instance) which will
+     * be responsible for injecting a valid Bearer token into outgoing requests.
+     */
+    public function setTokenProvider(TokenProviderInterface $tokenProvider): void {
+        $this->requestor->setTokenProvider($tokenProvider);
     }
 
     /**

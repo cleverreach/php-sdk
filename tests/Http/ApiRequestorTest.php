@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace CleverReach\Tests\Http;
 
+use CleverReach\SDK\Auth\TokenProviderInterface;
 use CleverReach\SDK\Exception\AuthenticationException;
 use CleverReach\SDK\Exception\CleverReachException;
+use CleverReach\SDK\Exception\RateLimitExceededException;
+use CleverReach\SDK\Exception\ResourceNotFoundException;
+use CleverReach\SDK\Exception\ValidationException;
 use CleverReach\SDK\Http\ApiRequestor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -149,7 +153,7 @@ final class ApiRequestorTest extends TestCase
         try {
             $this->makeRequestor()->request('POST', 'groups/123/receivers');
             self::fail('Expected ValidationException was not thrown.');
-        } catch (\CleverReach\SDK\Exception\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             self::assertSame('Invalid email address', $exception->getMessage());
             self::assertSame(400, $exception->statusCode());
         }
@@ -167,7 +171,7 @@ final class ApiRequestorTest extends TestCase
         try {
             $this->makeRequestor()->request('GET', 'groups/9999');
             self::fail('Expected ResourceNotFoundException was not thrown.');
-        } catch (\CleverReach\SDK\Exception\ResourceNotFoundException $exception) {
+        } catch (ResourceNotFoundException $exception) {
             self::assertSame('Group not found', $exception->getMessage());
             self::assertSame(404, $exception->statusCode());
         }
@@ -185,7 +189,7 @@ final class ApiRequestorTest extends TestCase
         try {
             $this->makeRequestor()->request('GET', 'groups');
             self::fail('Expected RateLimitExceededException was not thrown.');
-        } catch (\CleverReach\SDK\Exception\RateLimitExceededException $exception) {
+        } catch (RateLimitExceededException $exception) {
             self::assertSame('Too many requests', $exception->getMessage());
             self::assertSame(429, $exception->statusCode());
         }
@@ -211,11 +215,87 @@ final class ApiRequestorTest extends TestCase
         }
     }
 
-    public function testConstructorThrowsAuthenticationExceptionForEmptyApiToken(): void {
-        $this->expectException(AuthenticationException::class);
-        $this->expectExceptionMessage('API token must not be empty.');
+    public function testConstructorDoesNotThrowForEmptyApiToken(): void {
+        $requestor = new ApiRequestor(
+            '',
+            'https://rest.cleverreach.com/v3/',
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory
+        );
 
-        new ApiRequestor(" \n\t ");
+        $this->assertInstanceOf(ApiRequestor::class, $requestor);
+    }
+
+    public function testRequestRetriesExactlyOnceOn401WithTokenProvider(): void {
+        $provider = $this->createMock(TokenProviderInterface::class);
+        $provider->expects(self::exactly(2))
+            ->method('getAccessToken')
+            ->willReturnOnConsecutiveCalls('token_1', 'token_2')
+        ;
+
+        $requestor = $this->makeRequestor();
+        $requestor->setTokenProvider($provider);
+
+        $this->requestFactory->method('createRequest')->willReturn($this->request);
+
+        $this->request->expects(self::any())
+            ->method('withHeader')
+            ->willReturnCallback(function (string $name, string $value) {
+                return $this->request;
+            })
+        ;
+
+        $this->httpClient->expects(self::exactly(2))
+            ->method('sendRequest')
+            ->willReturn($this->response)
+        ;
+
+        $this->response->expects(self::exactly(2))
+            ->method('getStatusCode')
+            ->willReturnOnConsecutiveCalls(401, 200)
+        ;
+
+        $this->response->method('getBody')->willReturn($this->responseBody);
+        $this->responseBody->method('__toString')->willReturn('{"result":"success"}');
+
+        $result = $requestor->request('GET', 'groups');
+        self::assertSame(['result' => 'success'], $result);
+    }
+
+    public function testRequestThrowsOnSecond401WithTokenProvider(): void {
+        $provider = $this->createMock(TokenProviderInterface::class);
+        $provider->expects(self::exactly(2))
+            ->method('getAccessToken')
+            ->willReturnOnConsecutiveCalls('token_1', 'token_2')
+        ;
+
+        $requestor = $this->makeRequestor();
+        $requestor->setTokenProvider($provider);
+
+        $this->requestFactory->method('createRequest')->willReturn($this->request);
+        $this->request->method('withHeader')->willReturnSelf();
+
+        $this->httpClient->expects(self::exactly(2))
+            ->method('sendRequest')
+            ->willReturn($this->response)
+        ;
+
+        $this->response->expects(self::exactly(2))
+            ->method('getStatusCode')
+            ->willReturnOnConsecutiveCalls(401, 401)
+        ;
+
+        $this->response->method('getBody')->willReturn($this->responseBody);
+        $this->responseBody->method('__toString')->willReturn('{"error":"Still unauthorized"}');
+
+        try {
+            $requestor->request('GET', 'groups');
+            self::fail('Expected AuthenticationException');
+        } catch (AuthenticationException $e) {
+            self::assertSame('Still unauthorized', $e->getMessage());
+            self::assertSame(401, $e->statusCode());
+        }
     }
 
     public function testRequestReturnsEmptyArrayForEmptyResponseBody(): void {
