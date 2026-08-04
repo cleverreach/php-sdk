@@ -9,8 +9,8 @@ use CleverReach\SDK\Auth\OAuthHelper;
 use CleverReach\SDK\Auth\Storage\TokenStorageInterface;
 use CleverReach\SDK\Auth\Tokens;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -26,12 +26,12 @@ use Psr\Http\Message\StreamInterface;
 final class OAuthHelperTest extends TestCase
 {
     private ClientInterface&MockObject $httpClient;
-    private RequestFactoryInterface&MockObject $requestFactory;
-    private StreamFactoryInterface&MockObject $streamFactory;
-    private TokenStorageInterface&MockObject $storage;
-    private RequestInterface&MockObject $request;
-    private ResponseInterface&MockObject $response;
-    private StreamInterface&MockObject $responseBody;
+    private MockObject&RequestFactoryInterface $requestFactory;
+    private MockObject&StreamFactoryInterface $streamFactory;
+    private MockObject&TokenStorageInterface $storage;
+    private MockObject&RequestInterface $request;
+    private MockObject&ResponseInterface $response;
+    private MockObject&StreamInterface $responseBody;
 
     private OAuthHelper $helper;
 
@@ -188,7 +188,7 @@ final class OAuthHelperTest extends TestCase
         $this->requestFactory->method('createRequest')->willReturn($this->request);
         $this->request->method('withHeader')->willReturnSelf();
         $this->request->method('withBody')->willReturnSelf();
-        
+
         $exception = new class('Network error') extends \RuntimeException implements ClientExceptionInterface {};
         $this->httpClient->method('sendRequest')->willThrowException($exception);
 
@@ -233,16 +233,19 @@ final class OAuthHelperTest extends TestCase
         $this->requestFactory->expects(self::once())
             ->method('createRequest')
             ->with('DELETE', 'https://rest.cleverreach.com/oauth/token')
-            ->willReturn($this->request);
+            ->willReturn($this->request)
+        ;
 
         $this->request->expects(self::once())
             ->method('withHeader')
             ->with('Authorization', 'Bearer dummy_token')
-            ->willReturnSelf();
+            ->willReturnSelf()
+        ;
 
         $this->httpClient->expects(self::once())
             ->method('sendRequest')
-            ->with($this->request);
+            ->with($this->request)
+        ;
 
         $this->storage->expects(self::once())->method('delete');
 
@@ -270,12 +273,12 @@ final class OAuthHelperTest extends TestCase
         $this->httpClient->expects(self::once())
             ->method('sendRequest')
             ->with($this->request)
-            ->willReturn($this->response);
+            ->willReturn($this->response)
+        ;
 
         $this->response->method('getStatusCode')->willReturn($statusCode);
         $this->response->method('getBody')->willReturn($this->responseBody);
-        
+
         $this->responseBody->method('__toString')->willReturn($responseBodyString);
     }
 }
-

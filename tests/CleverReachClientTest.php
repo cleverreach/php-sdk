@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace CleverReach\Tests;
 
+use CleverReach\SDK\Auth\TokenProviderInterface;
 use CleverReach\SDK\CleverReachClient;
+use CleverReach\SDK\Service\GroupsService;
+use CleverReach\SDK\Service\ReceiversService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
@@ -33,7 +36,8 @@ final class CleverReachClientTest extends TestCase
             ->expects(self::once())
             ->method('createRequest')
             ->with('POST', 'https://rest.cleverreach.com/v3/groups/42/receivers')
-            ->willReturn($request);
+            ->willReturn($request)
+        ;
 
         $request->method('withHeader')->willReturnSelf();
         $request->method('withBody')->with($jsonStream)->willReturnSelf();
@@ -42,13 +46,15 @@ final class CleverReachClientTest extends TestCase
             ->expects(self::once())
             ->method('createStream')
             ->with('{"email":"dev@example.com"}')
-            ->willReturn($jsonStream);
+            ->willReturn($jsonStream)
+        ;
 
         $httpClient
             ->expects(self::once())
             ->method('sendRequest')
             ->with($request)
-            ->willReturn($response);
+            ->willReturn($response)
+        ;
 
         $response->method('getStatusCode')->willReturn(200);
         $response->method('getBody')->willReturn($responseBody);
@@ -81,12 +87,12 @@ final class CleverReachClientTest extends TestCase
         );
 
         $groupsFirst = $client->groups();
-        self::assertInstanceOf(\CleverReach\SDK\Service\GroupsService::class, $groupsFirst);
+        self::assertInstanceOf(GroupsService::class, $groupsFirst);
         // Assert we cache the instance
         self::assertSame($groupsFirst, $client->groups());
 
         $receiversFirst = $client->receivers();
-        self::assertInstanceOf(\CleverReach\SDK\Service\ReceiversService::class, $receiversFirst);
+        self::assertInstanceOf(ReceiversService::class, $receiversFirst);
         // Assert we cache the instance
         self::assertSame($receiversFirst, $client->receivers());
     }
@@ -104,11 +110,10 @@ final class CleverReachClientTest extends TestCase
             $streamFactory
         );
 
-        $provider = $this->createMock(\CleverReach\SDK\Auth\TokenProviderInterface::class);
+        $provider = $this->createMock(TokenProviderInterface::class);
 
         // the provider receives setting
         $client->setTokenProvider($provider);
-        self::assertTrue(true); // as long as it doesn't crash, the requestor delegation worked
+        $this->expectNotToPerformAssertions();
     }
 }
-

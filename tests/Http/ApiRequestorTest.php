@@ -223,26 +223,26 @@ final class ApiRequestorTest extends TestCase
 
         $this->response->method('getStatusCode')->willReturn(200);
         $this->response->method('getBody')->willReturn($this->responseBody);
-        
+
         // Return null/empty
         $this->responseBody->method('__toString')->willReturn('{"ok": true}');
-        
+
         $requestor = new ApiRequestor('', 'https://rest.cleverreach.com/v3/', $this->httpClient, $this->requestFactory, $this->streamFactory);
-        
+
         $result = $requestor->request('GET', 'groups', [], ['some' => 'json']);
         self::assertSame(['ok' => true], $result);
     }
-    
+
     public function testRequestEncodesJsonException(): void {
         $this->requestFactory->method('createRequest')->willReturn($this->request);
         $this->request->method('withHeader')->willReturnSelf();
-        
+
         // This will simulate json_encode failing due to INF float or recursive deps
         $recursive = [];
         $recursive['a'] = &$recursive;
 
         $requestor = new ApiRequestor('token', 'https://rest.cleverreach.com/v3/', $this->httpClient, $this->requestFactory, $this->streamFactory);
-        
+
         $this->expectException(CleverReachException::class);
         $this->expectExceptionMessage('Failed to encode CleverReach API request JSON.');
 
