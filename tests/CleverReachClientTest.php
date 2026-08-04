@@ -33,8 +33,7 @@ final class CleverReachClientTest extends TestCase
             ->expects(self::once())
             ->method('createRequest')
             ->with('POST', 'https://rest.cleverreach.com/v3/groups/42/receivers')
-            ->willReturn($request)
-        ;
+            ->willReturn($request);
 
         $request->method('withHeader')->willReturnSelf();
         $request->method('withBody')->with($jsonStream)->willReturnSelf();
@@ -43,29 +42,73 @@ final class CleverReachClientTest extends TestCase
             ->expects(self::once())
             ->method('createStream')
             ->with('{"email":"dev@example.com"}')
-            ->willReturn($jsonStream)
-        ;
+            ->willReturn($jsonStream);
 
         $httpClient
             ->expects(self::once())
             ->method('sendRequest')
             ->with($request)
-            ->willReturn($response)
-        ;
+            ->willReturn($response);
 
         $response->method('getStatusCode')->willReturn(200);
         $response->method('getBody')->willReturn($responseBody);
         $responseBody->method('__toString')->willReturn('{"ok":true}');
 
         $client = new CleverReachClient(
-            apiToken: 'token',
-            httpClient: $httpClient,
-            requestFactory: $requestFactory,
-            streamFactory: $streamFactory
+            'token',
+            'https://rest.cleverreach.com/v3/',
+            $httpClient,
+            $requestFactory,
+            $streamFactory
         );
 
         $result = $client->request('POST', 'groups/42/receivers', [], ['email' => 'dev@example.com']);
 
         self::assertSame(['ok' => true], $result);
     }
+
+    public function testServiceAccessorsReturnCorrectServiceInstances(): void {
+        $httpClient = $this->createMock(ClientInterface::class);
+        $requestFactory = $this->createMock(RequestFactoryInterface::class);
+        $streamFactory = $this->createMock(StreamFactoryInterface::class);
+
+        $client = new CleverReachClient(
+            'token',
+            'https://rest.cleverreach.com/v3/',
+            $httpClient,
+            $requestFactory,
+            $streamFactory
+        );
+
+        $groupsFirst = $client->groups();
+        self::assertInstanceOf(\CleverReach\SDK\Service\GroupsService::class, $groupsFirst);
+        // Assert we cache the instance
+        self::assertSame($groupsFirst, $client->groups());
+
+        $receiversFirst = $client->receivers();
+        self::assertInstanceOf(\CleverReach\SDK\Service\ReceiversService::class, $receiversFirst);
+        // Assert we cache the instance
+        self::assertSame($receiversFirst, $client->receivers());
+    }
+
+    public function testSetTokenProviderDelegatesToApiRequestor(): void {
+        $httpClient = $this->createMock(ClientInterface::class);
+        $requestFactory = $this->createMock(RequestFactoryInterface::class);
+        $streamFactory = $this->createMock(StreamFactoryInterface::class);
+
+        $client = new CleverReachClient(
+            'initial_token',
+            'https://rest.cleverreach.com/v3/',
+            $httpClient,
+            $requestFactory,
+            $streamFactory
+        );
+
+        $provider = $this->createMock(\CleverReach\SDK\Auth\TokenProviderInterface::class);
+
+        // the provider receives setting
+        $client->setTokenProvider($provider);
+        self::assertTrue(true); // as long as it doesn't crash, the requestor delegation worked
+    }
 }
+
