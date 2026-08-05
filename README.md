@@ -107,7 +107,7 @@ $oauthHelper = new OAuthHelper('YOUR_CLIENT_ID', 'YOUR_CLIENT_SECRET', 'https://
 $state = bin2hex(random_bytes(16));
 $_SESSION['oauth_state'] = $state;
 
-$url = $oauthHelper->getAuthorizationUrl($state, ['receivers:read', 'groups:read']);
+$url = $oauthHelper->getAuthorizationUrl($state, ['receivers.read', 'groups.read']);
 
 header('Location: ' . $url);
 exit;
@@ -161,7 +161,7 @@ class MyDatabaseTokenStorage implements TokenStorageInterface {
 
     public function set(Tokens $tokens): void {
         // UPDATE/INSERT INTO oauth_tokens WHERE user_id = $this->userId
-        // You can also access Scopes: $tokens->hasScope('receivers:read')
+        // You can also access Scopes: $tokens->hasScope('receivers.read')
     }
 
     public function delete(): void {
