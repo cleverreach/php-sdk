@@ -53,7 +53,7 @@ The SDK auto-detects the available client via `php-http/discovery` – no additi
 ## Installation
 
 ```bash
-composer require cleverreach/sdk-php
+composer require cleverreach/php-sdk
 ```
 
 ---
