@@ -107,7 +107,7 @@ $oauthHelper = new OAuthHelper('YOUR_CLIENT_ID', 'YOUR_CLIENT_SECRET', 'https://
 $state = bin2hex(random_bytes(16));
 $_SESSION['oauth_state'] = $state;
 
-$url = $oauthHelper->getAuthorizationUrl($state, ['receivers.read', 'groups.read']);
+$url = $oauthHelper->getAuthorizationUrl($state, ['oa_receivers', 'oa_forms']);
 
 header('Location: ' . $url);
 exit;
