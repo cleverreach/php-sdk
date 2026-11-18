@@ -280,6 +280,67 @@ $receiver = $client->receivers()->get('jane@example.com');
 echo $receiver->email . ' – active: ' . ($receiver->active ? 'yes' : 'no');
 ```
 
+### Extended endpoint coverage
+
+The client also exposes services for receiver writes, attributes, segments, dynamic content, forms, automations, webhooks, statistics, clients and connection diagnostics:
+
+| Service | Coverage |
+| ------- | -------- |
+| `$client->attributes()` | List, create and update global receiver attributes |
+| `$client->segments()` | List, create, update and delete group filters |
+| `$client->dynamicContent()` | List, create, update and delete `mycontent` entries |
+| `$client->forms()` | Fetch forms, create forms from templates and send DOI emails |
+| `$client->automation()` | Create and trigger abandoned-cart automations |
+| `$client->webhookEvents()` | Register and delete event webhooks |
+| `$client->stats()` | Group statistics and receiver counts by tag |
+| `$client->clients()` | Payment plans, receiver counts and client users |
+| `$client->debug()` | API ping, validation and current account information |
+| `$client->syncSettings()` | Update OAuth synchronization settings |
+| `$client->reports()` | Fetch mailing reports |
+
+Receiver write and blacklist operations are available through `$client->receivers()`:
+
+```php
+$client->receivers()->upsertPlus(123, [
+    [
+        'email' => 'jane@example.com',
+        'activated' => 0,
+        'global_attributes' => ['customergroup' => 'Customer'],
+        'tags' => ['JTLShop-Special.Subscriber'],
+    ],
+]);
+
+$receiver = $client->receivers()->filterByEmail(123, 'jane@example.com');
+$client->receivers()->blacklist(['email' => 'jane@example.com']);
+$client->receivers()->whitelist('jane@example.com');
+```
+
+Create a group or an abandoned-cart automation:
+
+```php
+$group = $client->groups()->create(['name' => 'Newsletter']);
+
+$client->automation()->createAbandonedCart([
+    'name' => 'Abandoned Cart - My Shop',
+    'store_id' => 'My Shop',
+]);
+```
+
+### Scalar JSON responses
+
+Use `request()` for endpoints returning a JSON object or list. For endpoints returning a scalar JSON value, use `requestScalar()`:
+
+```php
+$pong = $client->debug()->ping();
+$count = $client->stats()->countByTag('JTLShop-Special.Subscriber', 123);
+
+// Equivalent raw access:
+$count = $client->requestScalar('GET', 'tags/count.json', [
+    'tag' => 'JTLShop-Special.Subscriber',
+    'group_id' => 123,
+]);
+```
+
 ---
 
 ## Error Handling

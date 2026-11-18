@@ -387,6 +387,18 @@ final class ApiRequestorTest extends TestCase
         self::assertSame('fallback message', $message);
     }
 
+    public function testRequestScalarDecodesScalarJsonValue(): void {
+        $this->requestFactory->method('createRequest')->willReturn($this->request);
+        $this->request->method('withHeader')->willReturnSelf();
+        $this->httpClient->method('sendRequest')->willReturn($this->response);
+
+        $this->response->method('getStatusCode')->willReturn(200);
+        $this->response->method('getBody')->willReturn($this->responseBody);
+        $this->responseBody->method('__toString')->willReturn('42');
+
+        self::assertSame(42, $this->makeRequestor()->requestScalar('GET', 'tags/count.json'));
+    }
+
     private function makeRequestor(): ApiRequestor {
         return new ApiRequestor('token', 'https://rest.cleverreach.com/v3/', $this->httpClient, $this->requestFactory, $this->streamFactory);
     }

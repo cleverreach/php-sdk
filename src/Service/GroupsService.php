@@ -37,6 +37,17 @@ final class GroupsService extends AbstractService
         return GroupModel::fromArray(is_array($response) ? $response : []);
     }
 
+    /** @param array<string, mixed> $group */
+    public function create(array $group): GroupModel {
+        $response = $this->requestor->request('POST', 'groups.json', [], $group);
+
+        if (array_is_list($response)) {
+            $response = $response[0] ?? [];
+        }
+
+        return GroupModel::fromArray($response);
+    }
+
     /**
      * Returns all groups, optionally sorted by field and direction.
      *
