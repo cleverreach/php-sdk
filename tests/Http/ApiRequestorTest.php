@@ -71,6 +71,23 @@ final class ApiRequestorTest extends TestCase
         self::assertSame(['result' => 'ok'], $result);
     }
 
+    public function testAbsoluteWebhookUrlBypassesV3BasePath(): void {
+        $this->requestFactory
+            ->expects(self::once())
+            ->method('createRequest')
+            ->with('POST', 'https://rest.cleverreach.com/hooks/eventhook')
+            ->willReturn($this->request);
+        $this->request->method('withHeader')->willReturnSelf();
+        $this->httpClient->method('sendRequest')->willReturn($this->response);
+        $this->response->method('getStatusCode')->willReturn(200);
+        $this->response->method('getBody')->willReturn($this->responseBody);
+        $this->responseBody->method('__toString')->willReturn('[]');
+
+        $result = $this->makeRequestor()->request('POST', 'https://rest.cleverreach.com/hooks/eventhook');
+
+        self::assertSame([], $result);
+    }
+
     public function testRequestSendsJsonPayloadWhenProvided(): void {
         $jsonStream = $this->createMock(StreamInterface::class);
         $headers = [];
@@ -396,7 +413,7 @@ final class ApiRequestorTest extends TestCase
         $this->response->method('getBody')->willReturn($this->responseBody);
         $this->responseBody->method('__toString')->willReturn('42');
 
-        self::assertSame(42, $this->makeRequestor()->requestScalar('GET', 'tags/count.json'));
+        self::assertSame(42, $this->makeRequestor()->requestScalar('GET', 'tags/count'));
     }
 
     private function makeRequestor(): ApiRequestor {

@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
-use CleverReach\SDK\Model\ReceiverModel;
+use CleverReach\SDK\Collection\ModelCollection;
 use CleverReach\SDK\Exception\CleverReachException;
 use CleverReach\SDK\Exception\ResourceNotFoundException;
+use CleverReach\SDK\Model\BlacklistRequest;
+use CleverReach\SDK\Model\BlacklistValidationModel;
+use CleverReach\SDK\Model\ReceiverModel;
+use CleverReach\SDK\Model\ReceiverRequest;
 
 final class ReceiversService extends AbstractService
 {
     /**
-     * Returns a single receiver by its numeric ID or email address.
-     *
-     * @param int|string $id      Numeric receiver ID or email address
-     * @param null|int   $groupId Optional group ID to scope the lookup
-     *
+     * @param int|string $id Numeric receiver ID or email address
+     * @param null|int $groupId Optional group ID to scope the lookup
      * @throws CleverReachException
      */
     public function get(int|string $id, ?int $groupId = null): ReceiverModel {
@@ -26,62 +27,66 @@ final class ReceiversService extends AbstractService
 
         if (array_is_list($response)) {
             if (empty($response)) {
-                throw new ResourceNotFoundException(
-                    "Receiver '{$id}' not found."
-                );
+                throw new ResourceNotFoundException("Receiver '{$id}' not found.");
             }
             $response = $response[0];
         }
 
-        return ReceiverModel::fromArray(is_array($response) ? $response : []);
+        return ReceiverModel::fromArray($response);
     }
 
     /**
-     * @param list<array<string, mixed>> $receivers
-     * @return array<string, mixed>|list<array<string, mixed>>
+     * @param list<mixed> $receivers
+     * @return ModelCollection<ReceiverModel>
      */
-    public function upsertPlus(int $groupId, array $receivers): array {
-        return $this->requestor->request('POST', "groups.json/{$groupId}/receivers/upsertplus", [], $receivers);
+    public function upsertPlus(int $groupId, array $receivers): ModelCollection {
+        foreach ($receivers as $receiver) {
+            if (!$receiver instanceof ReceiverRequest) {
+                throw new \InvalidArgumentException('Receivers must be ReceiverRequest instances.');
+            }
+        }
+        $payload = array_map(
+            static fn (ReceiverRequest $receiver): array => $receiver->toArray(),
+            $receivers
+        );
+        $response = $this->requestor->request('POST', "groups/{$groupId}/receivers/upsertplus", [], $payload);
+        if (!array_is_list($response)) {
+            $response = [$response];
+        }
+
+        return $this->collection($response, ReceiverModel::class);
     }
 
     public function delete(string $email): void {
-        $this->requestor->request('DELETE', 'receivers.json/'.$this->encodeReceiverId($email));
+        $this->requestor->request('DELETE', 'receivers/'.$this->encodeReceiverId($email));
     }
 
-    /**
-     * @param list<string> $emails
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function deleteBatch(array $emails): array {
-        return $this->requestor->request('POST', 'receivers/delete.json', [], ['receivers' => $emails]);
+    /** @param list<string> $emails */
+    public function deleteBatch(array $emails): void {
+        $this->requestor->request('POST', 'receivers/delete', [], ['receivers' => $emails]);
     }
 
-    /**
-     * @param array<string, mixed> $blacklist
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function blacklist(array $blacklist): array {
-        return $this->requestor->request('POST', 'blacklist.json/', [], $blacklist);
+    public function blacklist(BlacklistRequest $blacklist): void {
+        $this->requestor->request('POST', 'blacklist', [], $blacklist->toArray());
     }
 
     public function whitelist(string $email): void {
-        $this->requestor->request('DELETE', 'blacklist.json/'.$this->encodeReceiverId($email));
+        $this->requestor->request('DELETE', 'blacklist/'.$this->encodeReceiverId($email));
     }
 
-    /**
-     * @param list<string> $emails
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function validateBlacklist(int $groupId, array $emails): array {
-        return $this->requestor->request('POST', 'blacklist/validate.json', [], [
+    /** @param list<string> $emails */
+    public function validateBlacklist(int $groupId, array $emails): BlacklistValidationModel {
+        $response = $this->requestor->request('POST', 'blacklist/validate', [], [
             'emails' => $emails,
             'group_id' => $groupId,
             'invert' => true,
         ]);
+
+        return BlacklistValidationModel::fromArray($this->firstRow($response));
     }
 
     public function filterByEmail(int $groupId, string $email): ?ReceiverModel {
-        $response = $this->requestor->request('POST', 'receivers/filter.json', [], [
+        $response = $this->requestor->request('POST', 'receivers/filter', [], [
             'groups' => [$groupId],
             'rules' => [
                 ['field' => 'email', 'logic' => 'eq', 'condition' => $email],
@@ -93,13 +98,11 @@ final class ReceiversService extends AbstractService
 
     public function getFromGroup(int $groupId, int|string $receiverId): ReceiverModel {
         $encodedId = $this->encodeReceiverId($receiverId);
-        $response = $this->requestor->request('GET', "groups.json/{$groupId}/receivers/{$encodedId}");
+        $response = $this->requestor->request('GET', "groups/{$groupId}/receivers/{$encodedId}");
 
         if (array_is_list($response)) {
             if (empty($response)) {
-                throw new ResourceNotFoundException(
-                    "Receiver '{$receiverId}' not found in group '{$groupId}'."
-                );
+                throw new ResourceNotFoundException("Receiver '{$receiverId}' not found in group '{$groupId}'.");
             }
             $response = $response[0];
         }
@@ -108,6 +111,6 @@ final class ReceiversService extends AbstractService
     }
 
     private function encodeReceiverId(int|string $id): string {
-        return str_replace('%40', '@', rawurlencode((string) $id));
+        return str_replace('%40', '@', rawurlencode((string)$id));
     }
 }

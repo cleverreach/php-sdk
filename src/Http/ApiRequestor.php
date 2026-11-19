@@ -183,7 +183,9 @@ final class ApiRequestor implements ScalarApiRequestorInterface
      * @param null|array<string, mixed>|list<array<string, mixed>>  $json
      */
     private function createRequest(string $method, string $uri, array $query, ?array $json, bool $forceTokenRefresh): RequestInterface {
-        $url = $this->baseUri.ltrim($uri, '/');
+        $url = preg_match('#^https?://#i', $uri) === 1
+            ? $uri
+            : $this->baseUri.ltrim($uri, '/');
         $cleanQuery = array_filter($query, static fn (mixed $value): bool => $value !== null);
 
         if ($cleanQuery !== []) {

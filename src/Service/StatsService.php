@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
+use CleverReach\SDK\Model\GroupStatsModel;
+
 final class StatsService extends AbstractService
 {
-    /** @return array<string, mixed>|list<array<string, mixed>> */
-    public function group(int $groupId): array {
-        return $this->requestor->request('GET', "groups.json/{$groupId}/stats");
+    public function group(int $groupId): GroupStatsModel {
+        $response = $this->requestor->request('GET', "groups/{$groupId}/stats");
+
+        return GroupStatsModel::fromArray($this->firstRow($response));
     }
 
     public function countByTag(string $tag, ?int $groupId = null): int {
-        $response = $this->requestScalar('GET', 'tags/count.json', [
+        return (int)$this->requestScalar('GET', 'tags/count', [
             'tag' => $tag,
             'group_id' => $groupId,
         ]);
-
-        return (int) $response;
     }
 }

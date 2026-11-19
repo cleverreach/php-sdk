@@ -94,7 +94,7 @@ final class ReceiversServiceTest extends TestCase
         $this->requestor
             ->expects(self::once())
             ->method('request')
-            ->with('GET', 'groups.json/42/receivers/a%23b@example.com')
+            ->with('GET', 'groups/42/receivers/a%23b@example.com')
             ->willReturn(['id' => 21, 'email' => 'a#b@example.com'])
         ;
 

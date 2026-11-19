@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
+use CleverReach\SDK\Model\AccountModel;
+use CleverReach\SDK\Model\DebugValidationModel;
+
 final class DebugService extends AbstractService
 {
     public function ping(): string {
-        return (string) $this->requestScalar('GET', 'debug/ping.json');
+        return (string)$this->requestScalar('GET', 'debug/ping');
     }
 
-    /** @return array<string, mixed>|list<array<string, mixed>> */
-    public function validate(): array {
-        return $this->requestor->request('GET', 'debug/validate.json');
+    public function whoami(): AccountModel {
+        return AccountModel::fromArray($this->firstRow($this->requestor->request('GET', 'debug/whoami')));
     }
 
-    /** @return array<string, mixed>|list<array<string, mixed>> */
-    public function whoami(): array {
-        return $this->requestor->request('GET', 'debug/whoami.json');
+    public function validate(): DebugValidationModel {
+        $response = $this->requestor->request('GET', 'debug/validate');
+
+        return DebugValidationModel::fromArray($this->firstRow($response));
     }
 }

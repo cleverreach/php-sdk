@@ -4,30 +4,37 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
+use CleverReach\SDK\Collection\ModelCollection;
+use CleverReach\SDK\Model\SegmentModel;
+use CleverReach\SDK\Model\SegmentRequest;
+
 final class SegmentsService extends AbstractService
 {
-    /** @return array<string, mixed>|list<array<string, mixed>> */
-    public function all(int $groupId): array {
-        return $this->requestor->request('GET', "groups.json/{$groupId}/filters");
+    /** @return ModelCollection<SegmentModel> */
+    public function all(int $groupId): ModelCollection {
+        $response = $this->requestor->request('GET', "groups/{$groupId}/filters");
+
+        return $this->collection($response, SegmentModel::class);
     }
 
-    /**
-     * @param array<string, mixed> $segment
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function create(int $groupId, array $segment): array {
-        return $this->requestor->request('POST', "groups.json/{$groupId}/filters", [], $segment);
+    public function create(int $groupId, SegmentRequest $segment): SegmentModel {
+        $response = $this->requestor->request('POST', "groups/{$groupId}/filters", [], $segment->toArray());
+
+        return SegmentModel::fromArray($this->firstRow($response));
     }
 
-    /**
-     * @param array<string, mixed> $segment
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function update(int $groupId, int|string $segmentId, array $segment): array {
-        return $this->requestor->request('PUT', "groups.json/{$groupId}/filters/{$segmentId}", [], $segment);
+    public function update(int $groupId, int|string $segmentId, SegmentRequest $segment): SegmentModel {
+        $response = $this->requestor->request(
+            'PUT',
+            "groups/{$groupId}/filters/{$segmentId}",
+            [],
+            $segment->toArray()
+        );
+
+        return SegmentModel::fromArray($this->firstRow($response));
     }
 
     public function delete(int $groupId, int|string $segmentId): void {
-        $this->requestor->request('DELETE', "groups.json/{$groupId}/filters/{$segmentId}");
+        $this->requestor->request('DELETE', "groups/{$groupId}/filters/{$segmentId}");
     }
 }

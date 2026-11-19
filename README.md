@@ -301,29 +301,36 @@ The client also exposes services for receiver writes, attributes, segments, dyna
 Receiver write and blacklist operations are available through `$client->receivers()`:
 
 ```php
+use CleverReach\SDK\Model\BlacklistRequest;
+use CleverReach\SDK\Model\ReceiverRequest;
+
 $client->receivers()->upsertPlus(123, [
-    [
-        'email' => 'jane@example.com',
-        'activated' => 0,
-        'global_attributes' => ['customergroup' => 'Customer'],
-        'tags' => ['JTLShop-Special.Subscriber'],
-    ],
+    new ReceiverRequest(
+        email: 'jane@example.com',
+        activated: 0,
+        globalAttributes: ['customergroup' => 'Customer'],
+        tags: ['JTLShop-Special.Subscriber']
+    ),
 ]);
 
 $receiver = $client->receivers()->filterByEmail(123, 'jane@example.com');
-$client->receivers()->blacklist(['email' => 'jane@example.com']);
+$client->receivers()->blacklist(new BlacklistRequest('jane@example.com', 123));
 $client->receivers()->whitelist('jane@example.com');
 ```
 
 Create a group or an abandoned-cart automation:
 
 ```php
-$group = $client->groups()->create(['name' => 'Newsletter']);
+use CleverReach\SDK\Model\AbandonedCartAutomationRequest;
+use CleverReach\SDK\Model\GroupRequest;
 
-$client->automation()->createAbandonedCart([
-    'name' => 'Abandoned Cart - My Shop',
-    'store_id' => 'My Shop',
-]);
+$group = $client->groups()->create(new GroupRequest('Newsletter'));
+
+$client->automation()->createAbandonedCart(new AbandonedCartAutomationRequest(
+    name: 'Abandoned Cart - My Shop',
+    storeId: 'My Shop',
+    integration: 'JTLShop'
+));
 ```
 
 ### Scalar JSON responses
@@ -335,7 +342,7 @@ $pong = $client->debug()->ping();
 $count = $client->stats()->countByTag('JTLShop-Special.Subscriber', 123);
 
 // Equivalent raw access:
-$count = $client->requestScalar('GET', 'tags/count.json', [
+$count = $client->requestScalar('GET', 'tags/count', [
     'tag' => 'JTLShop-Special.Subscriber',
     'group_id' => 123,
 ]);
@@ -391,7 +398,7 @@ request(string $method, string $endpoint, array $query = [], ?array $json = null
 | Parameter   | Type          | Description                                         |
 | ----------- | ------------- | --------------------------------------------------- |
 | `$method`   | `string`      | HTTP verb: `GET`, `POST`, `PUT`, `DELETE`           |
-| `$endpoint` | `string`      | Path relative to `https://rest.cleverreach.com/v3/` |
+| `$endpoint` | `string`      | Path relative to `https://rest.cleverreach.com/v3/` or an absolute URL, for example for webhooks |
 | `$query`    | `array`       | URL query parameters (`null` values are ignored)    |
 | `$json`     | `array\|null` | Request body, JSON-encoded automatically            |
 

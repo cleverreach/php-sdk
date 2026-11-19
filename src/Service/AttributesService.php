@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
+use CleverReach\SDK\Collection\ModelCollection;
+use CleverReach\SDK\Model\AttributeModel;
+use CleverReach\SDK\Model\AttributeRequest;
+
 final class AttributesService extends AbstractService
 {
-    /** @return array<string, mixed>|list<array<string, mixed>> */
-    public function all(): array {
-        return $this->requestor->request('GET', 'attributes.json');
+    /** @return ModelCollection<AttributeModel> */
+    public function all(): ModelCollection {
+        return $this->collection($this->requestor->request('GET', 'attributes'), AttributeModel::class);
     }
 
-    /**
-     * @param array<string, mixed> $field
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function create(array $field): array {
-        return $this->requestor->request('POST', 'attributes.json', [], $field);
+    public function create(AttributeRequest $field): AttributeModel {
+        $response = $this->requestor->request('POST', 'attributes', [], $field->toArray());
+
+        return AttributeModel::fromArray($this->firstRow($response));
     }
 
-    /**
-     * @param array<string, mixed> $field
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function update(int|string $id, array $field): array {
-        return $this->requestor->request('PUT', "attributes.json/{$id}", [], $field);
+    public function update(int|string $id, AttributeRequest $field): AttributeModel {
+        $response = $this->requestor->request('PUT', "attributes/{$id}", [], $field->toArray());
+
+        return AttributeModel::fromArray($this->firstRow($response));
     }
 }

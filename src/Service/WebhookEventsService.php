@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace CleverReach\SDK\Service;
 
+use CleverReach\SDK\Model\WebhookEventModel;
+use CleverReach\SDK\Model\WebhookEventRequest;
+
 final class WebhookEventsService extends AbstractService
 {
-    /**
-     * @param array<string, mixed> $event
-     * @return array<string, mixed>|list<array<string, mixed>>
-     */
-    public function register(array $event): array {
-        return $this->requestor->request('POST', 'hooks/eventhook', [], $event);
+    private const ENDPOINT = 'https://rest.cleverreach.com/hooks/eventhook';
+
+    public function register(WebhookEventRequest $event): WebhookEventModel {
+        $response = $this->requestor->request('POST', self::ENDPOINT, [], $event->toArray());
+
+        return WebhookEventModel::fromArray($this->firstRow($response));
     }
 
     public function delete(string $condition, string $type): void {
-        $this->requestor->request('DELETE', "hooks/eventhook/{$type}", ['condition' => $condition]);
+        $this->requestor->request('DELETE', self::ENDPOINT . '/' . $type, ['condition' => $condition]);
     }
 }
