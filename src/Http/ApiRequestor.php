@@ -19,7 +19,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
-final class ApiRequestor implements ApiRequestorInterface
+final class ApiRequestor implements ScalarApiRequestorInterface
 {
     private readonly ClientInterface $httpClient;
     private readonly RequestFactoryInterface $requestFactory;

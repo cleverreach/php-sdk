@@ -12,7 +12,7 @@ final class ClientsService extends AbstractService
     }
 
     public function activeReceiversCount(int|string $clientId): mixed {
-        return $this->requestor->requestScalar('GET', "clients.json/{$clientId}/receivercount");
+        return $this->requestScalar('GET', "clients.json/{$clientId}/receivercount");
     }
 
     /** @return array<string, mixed>|list<array<string, mixed>> */

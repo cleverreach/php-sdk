@@ -6,6 +6,7 @@ namespace CleverReach\Tests\Service;
 
 use CleverReach\SDK\CleverReachClient;
 use CleverReach\SDK\Http\ApiRequestorInterface;
+use CleverReach\SDK\Http\ScalarApiRequestorInterface;
 use CleverReach\SDK\Service\AttributesService;
 use CleverReach\SDK\Service\AutomationService;
 use CleverReach\SDK\Service\ClientsService;
@@ -106,7 +107,7 @@ final class ExpandedServicesTest extends TestCase
     }
 
     public function testScalarEndpointMethods(): void {
-        $requestor = $this->createMock(ApiRequestorInterface::class);
+        $requestor = $this->createMock(ScalarApiRequestorInterface::class);
         $requestor->expects(self::exactly(3))
             ->method('requestScalar')
             ->willReturnCallback(static function (string $method, string $uri): mixed {
@@ -122,6 +123,21 @@ final class ExpandedServicesTest extends TestCase
         self::assertSame(17, (new StatsService($requestor))->countByTag('Subscriber', 21));
         self::assertSame('pong', (new DebugService($requestor))->ping());
         self::assertSame('23', (new ClientsService($requestor))->activeReceiversCount(7));
+    }
+
+    public function testLegacyRequestorDoesNotNeedScalarMethod(): void {
+        $requestor = new class implements ApiRequestorInterface {
+            public function request(
+                string $method,
+                string $uri,
+                array $query = [],
+                ?array $json = null
+            ): array {
+                return [];
+            }
+        };
+
+        self::assertSame(0, iterator_count((new GroupsService($requestor))->all()));
     }
 
     public function testClientProvidesExpandedServices(): void {

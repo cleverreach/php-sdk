@@ -7,7 +7,7 @@ namespace CleverReach\SDK\Service;
 final class DebugService extends AbstractService
 {
     public function ping(): string {
-        return (string) $this->requestor->requestScalar('GET', 'debug/ping.json');
+        return (string) $this->requestScalar('GET', 'debug/ping.json');
     }
 
     /** @return array<string, mixed>|list<array<string, mixed>> */

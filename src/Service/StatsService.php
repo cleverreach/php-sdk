@@ -12,7 +12,7 @@ final class StatsService extends AbstractService
     }
 
     public function countByTag(string $tag, ?int $groupId = null): int {
-        $response = $this->requestor->requestScalar('GET', 'tags/count.json', [
+        $response = $this->requestScalar('GET', 'tags/count.json', [
             'tag' => $tag,
             'group_id' => $groupId,
         ]);

@@ -92,10 +92,16 @@ final class ReceiversService extends AbstractService
     }
 
     public function getFromGroup(int $groupId, int|string $receiverId): ReceiverModel {
-        $response = $this->requestor->request('GET', "groups.json/{$groupId}/receivers/{$receiverId}");
+        $encodedId = $this->encodeReceiverId($receiverId);
+        $response = $this->requestor->request('GET', "groups.json/{$groupId}/receivers/{$encodedId}");
 
         if (array_is_list($response)) {
-            $response = $response[0] ?? [];
+            if (empty($response)) {
+                throw new ResourceNotFoundException(
+                    "Receiver '{$receiverId}' not found in group '{$groupId}'."
+                );
+            }
+            $response = $response[0];
         }
 
         return ReceiverModel::fromArray($response);
