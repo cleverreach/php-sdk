@@ -85,7 +85,6 @@ final class ExpandedServicesTest extends TestCase
         yield 'forms create from template' => [FormsService::class, 'createFromTemplate', [21, 'doi', ['name' => 'DOI']], 'POST', 'forms.json/21/createfromtemplate/doi', [], ['name' => 'DOI'], []];
         yield 'forms send' => [FormsService::class, 'send', [9, 'doi', ['email' => 'a@example.com', 'doidata' => []]], 'POST', 'forms.json/9/send/doi', [], ['email' => 'a@example.com', 'doidata' => []], []];
         yield 'automation create abandoned cart' => [AutomationService::class, 'createAbandonedCart', [['name' => 'Cart']], 'POST', 'automation/createfromtemplate/abandonedcart.json', [], ['name' => 'Cart'], []];
-        yield 'automation trigger abandoned cart' => [AutomationService::class, 'triggerAbandonedCart', [['pool_id' => 'a@example.com']], 'POST', 'trigger/abandonedcart.json', [], ['pool_id' => 'a@example.com'], []];
         yield 'webhook register' => [WebhookEventsService::class, 'register', [['event' => 'automation', 'condition' => '21', 'url' => 'https://example.test/hook', 'verify' => 'token']], 'POST', 'hooks/eventhook', [], ['event' => 'automation', 'condition' => '21', 'url' => 'https://example.test/hook', 'verify' => 'token'], []];
         yield 'webhook delete' => [WebhookEventsService::class, 'delete', ['21', 'automation'], 'DELETE', 'hooks/eventhook/automation', ['condition' => '21'], null, []];
         yield 'stats group' => [StatsService::class, 'group', [21], 'GET', 'groups.json/21/stats', [], null, []];
@@ -108,13 +107,14 @@ final class ExpandedServicesTest extends TestCase
 
     public function testScalarEndpointMethods(): void {
         $requestor = $this->createMock(ScalarApiRequestorInterface::class);
-        $requestor->expects(self::exactly(3))
+        $requestor->expects(self::exactly(4))
             ->method('requestScalar')
             ->willReturnCallback(static function (string $method, string $uri): mixed {
                 return match ($uri) {
                     'tags/count.json' => '17',
                     'debug/ping.json' => 'pong',
                     'clients.json/7/receivercount' => '23',
+                    'trigger/abandonedcart.json' => 0,
                     default => null,
                 };
             })
@@ -123,6 +123,7 @@ final class ExpandedServicesTest extends TestCase
         self::assertSame(17, (new StatsService($requestor))->countByTag('Subscriber', 21));
         self::assertSame('pong', (new DebugService($requestor))->ping());
         self::assertSame('23', (new ClientsService($requestor))->activeReceiversCount(7));
+        (new AutomationService($requestor))->triggerAbandonedCart(['poolid' => 'a@example.com']);
     }
 
     public function testLegacyRequestorDoesNotNeedScalarMethod(): void {

@@ -16,6 +16,6 @@ final class AutomationService extends AbstractService
 
     /** @param array<string, mixed> $trigger */
     public function triggerAbandonedCart(array $trigger): void {
-        $this->requestor->request('POST', 'trigger/abandonedcart.json', [], $trigger);
+        $this->requestScalar('POST', 'trigger/abandonedcart.json', [], $trigger);
     }
 }
