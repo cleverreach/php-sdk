@@ -89,4 +89,29 @@ final class ReceiversServiceTest extends TestCase
 
         $this->service->get(999);
     }
+
+    public function testGetFromGroupEncodesReceiverIdentifier(): void {
+        $this->requestor
+            ->expects(self::once())
+            ->method('request')
+            ->with('GET', 'groups/42/receivers/a%23b@example.com')
+            ->willReturn(['id' => 21, 'email' => 'a#b@example.com'])
+        ;
+
+        $receiver = $this->service->getFromGroup(self::GROUP_ID, 'a#b@example.com');
+
+        self::assertSame('a#b@example.com', $receiver->email);
+    }
+
+    public function testGetFromGroupThrowsExceptionWhenListIsEmpty(): void {
+        $this->requestor
+            ->method('request')
+            ->willReturn([])
+        ;
+
+        $this->expectException(ResourceNotFoundException::class);
+        $this->expectExceptionMessage("Receiver 'missing@example.com' not found in group '42'.");
+
+        $this->service->getFromGroup(self::GROUP_ID, 'missing@example.com');
+    }
 }

@@ -19,7 +19,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
-final class ApiRequestor implements ApiRequestorInterface
+final class ApiRequestor implements ScalarApiRequestorInterface
 {
     private readonly ClientInterface $httpClient;
     private readonly RequestFactoryInterface $requestFactory;
@@ -54,7 +54,7 @@ final class ApiRequestor implements ApiRequestorInterface
 
     /**
      * @param array<string, null|scalar> $query
-     * @param null|array<string, mixed>  $json
+     * @param null|array<string, mixed>|list<array<string, mixed>>  $json
      *
      * @return array<string, mixed>|list<array<string, mixed>>
      */
@@ -64,7 +64,22 @@ final class ApiRequestor implements ApiRequestorInterface
         array $query = [],
         ?array $json = null
     ): array {
-        return $this->doRequest($method, $uri, $query, $json, false);
+        $result = $this->doRequest($method, $uri, $query, $json, false);
+
+        if (!is_array($result)) {
+            throw new CleverReachException('Unexpected response format from CleverReach API.');
+        }
+
+        return $result;
+    }
+
+    public function requestScalar(
+        string $method,
+        string $uri,
+        array $query = [],
+        ?array $json = null
+    ): mixed {
+        return $this->doRequest($method, $uri, $query, $json, false, true);
     }
 
     public function setTokenProvider(TokenProviderInterface $tokenProvider): void {
@@ -73,17 +88,18 @@ final class ApiRequestor implements ApiRequestorInterface
 
     /**
      * @param array<string, null|scalar> $query
-     * @param null|array<string, mixed>  $json
+     * @param null|array<string, mixed>|list<array<string, mixed>>  $json
      *
-     * @return array<string, mixed>|list<array<string, mixed>>
+     * @return array<string, mixed>|list<array<string, mixed>>|scalar
      */
     private function doRequest(
         string $method,
         string $uri,
         array $query,
         ?array $json,
-        bool $isRetrying
-    ): array {
+        bool $isRetrying,
+        bool $allowScalar = false
+    ): mixed {
         if ($this->tokenProvider === null && $this->apiToken === '') {
             throw new AuthenticationException(
                 'No authentication token provided. You must either pass a static API token in the constructor or use setTokenProvider().',
@@ -101,7 +117,7 @@ final class ApiRequestor implements ApiRequestorInterface
             // the token might have been invalidated server-side before its expiry date.
             // Force a hard refresh and retry exactly once.
             if ($statusCode === 401 && !$isRetrying && $this->tokenProvider !== null) {
-                return $this->doRequest($method, $uri, $query, $json, true);
+                return $this->doRequest($method, $uri, $query, $json, true, $allowScalar);
             }
 
             if ($statusCode === 401) {
@@ -150,7 +166,7 @@ final class ApiRequestor implements ApiRequestorInterface
 
             $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
 
-            if (!is_array($decoded)) {
+            if (!$allowScalar && !is_array($decoded)) {
                 throw new CleverReachException('Unexpected response format from CleverReach API.');
             }
 
@@ -164,10 +180,12 @@ final class ApiRequestor implements ApiRequestorInterface
 
     /**
      * @param array<string, null|scalar> $query
-     * @param null|array<string, mixed>  $json
+     * @param null|array<string, mixed>|list<array<string, mixed>>  $json
      */
     private function createRequest(string $method, string $uri, array $query, ?array $json, bool $forceTokenRefresh): RequestInterface {
-        $url = $this->baseUri.ltrim($uri, '/');
+        $url = preg_match('#^https?://#i', $uri) === 1
+            ? $uri
+            : $this->baseUri.ltrim($uri, '/');
         $cleanQuery = array_filter($query, static fn (mixed $value): bool => $value !== null);
 
         if ($cleanQuery !== []) {

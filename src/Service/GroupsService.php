@@ -7,6 +7,7 @@ namespace CleverReach\SDK\Service;
 use CleverReach\SDK\Collection\GroupCollection;
 use CleverReach\SDK\Collection\ReceiverCollection;
 use CleverReach\SDK\Model\GroupModel;
+use CleverReach\SDK\Model\GroupRequest;
 use CleverReach\SDK\Enum\GroupSortField;
 use CleverReach\SDK\Enum\ReceiverType;
 use CleverReach\SDK\Enum\SortOrder;
@@ -35,6 +36,16 @@ final class GroupsService extends AbstractService
         }
 
         return GroupModel::fromArray(is_array($response) ? $response : []);
+    }
+
+    public function create(GroupRequest $group): GroupModel {
+        $response = $this->requestor->request('POST', 'groups', [], $group->toArray());
+
+        if (array_is_list($response)) {
+            $response = $response[0] ?? [];
+        }
+
+        return GroupModel::fromArray($response);
     }
 
     /**

@@ -8,7 +8,7 @@ interface ApiRequestorInterface
 {
     /**
      * @param array<string, null|scalar> $query
-     * @param null|array<string, mixed>  $json
+     * @param null|array<string, mixed>|list<array<string, mixed>>  $json
      *
      * @return array<string, mixed>|list<array<string, mixed>>
      */
